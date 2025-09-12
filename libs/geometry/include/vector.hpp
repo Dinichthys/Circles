@@ -23,7 +23,7 @@ class Coordinates {
         size_t dimension;
 
     public:
-        Coordinates(const Coordinates& need_copy) {
+        explicit Coordinates(const Coordinates& need_copy) {
             ASSERT(need_copy.coordinates != NULL, "");
             dimension = need_copy.dimension;
             coordinates = (float*) calloc(dimension, sizeof(float));
@@ -34,15 +34,20 @@ class Coordinates {
                 coordinates[i] = need_copy.coordinates[i];
             }
         };
-        Coordinates(size_t dimension, const float* values) {
-            ASSERT(values != NULL, "");
+        explicit Coordinates(size_t dimension, const float* values = NULL) {
             Coordinates::dimension = dimension;
             coordinates = (float*) calloc(dimension, sizeof(float));
             if (coordinates == NULL) {
                 throw "Can't calloc coordinates";
             }
-            for (size_t i = 0; i < dimension; i++) {
-                coordinates[i] = values[i];
+            if (values == NULL) {
+                for (size_t i = 0; i < dimension; i++) {
+                    coordinates[i] = 0;
+                }
+            } else {
+                for (size_t i = 0; i < dimension; i++) {
+                    coordinates[i] = values[i];
+                }
             }
         };
         ~Coordinates() {
@@ -94,7 +99,7 @@ class Coordinates {
             }
             Coordinates ret_val(dimension, result);
             free(result);
-            return ret_val;
+            return Coordinates(ret_val);
         };
         Coordinates operator + (float val) const {
             float* result = (float*) calloc(dimension, sizeof(float));
@@ -106,7 +111,7 @@ class Coordinates {
             }
             Coordinates ret_val(dimension, result);
             free(result);
-            return ret_val;
+            return Coordinates(ret_val);
         };
         Coordinates operator - (const Coordinates& a) const {
             float* result = (float*) calloc(dimension, sizeof(float));
@@ -118,7 +123,7 @@ class Coordinates {
             }
             Coordinates ret_val(dimension, result);
             free(result);
-            return ret_val;
+            return Coordinates(ret_val);
         };
         Coordinates operator - (float val) const {
             float* result = (float*) calloc(dimension, sizeof(float));
@@ -130,7 +135,7 @@ class Coordinates {
             }
             Coordinates ret_val(dimension, result);
             free(result);
-            return ret_val;
+            return Coordinates(ret_val);
         };
         Coordinates operator * (float val) const {
             float* result = (float*) calloc(dimension, sizeof(float));
@@ -142,7 +147,7 @@ class Coordinates {
             }
             Coordinates ret_val(dimension, result);
             free(result);
-            return ret_val;
+            return Coordinates(ret_val);
         };
         Coordinates operator / (float val) const {
             float* result = (float*) calloc(dimension, sizeof(float));
@@ -154,21 +159,34 @@ class Coordinates {
             }
             Coordinates ret_val(dimension, result);
             free(result);
-            return ret_val;
+            return Coordinates(ret_val);
         };
         Coordinates operator ! () {
             float len = GetModule();
             return *this / len;
         };
-        float operator ^ (const Coordinates& a) const {
+        float operator && (const Coordinates& a) const {
             float result = 0;
             for (size_t i = 0; i < dimension; i++) {
                 result += coordinates[i] * a[i];
             }
             return result;
         };
+        Coordinates operator || (const Coordinates& a) const {
+            Coordinates result(dimension);
+            result.SetCoordinate(0, (*this)[1] * a[2] - (*this)[2] * a[1]);
+            result.SetCoordinate(1, (*this)[2] * a[0] - (*this)[0] * a[2]);
+            result.SetCoordinate(2, (*this)[0] * a[1] - (*this)[1] * a[0]);
+            return Coordinates(result);
+        };
+        // float operator & () const {
+        //     return GetModule();
+        // };
         void operator = (const Coordinates& need_copy) {
             ASSERT(need_copy.coordinates != NULL, "");
+            if (need_copy.coordinates == coordinates) {
+                return;
+            }
             if (coordinates != NULL) {
                 free(coordinates);
                 coordinates = NULL;
@@ -197,8 +215,8 @@ class MyVector {
             }
         };
 
-        Coordinates GetStartCoordinates() {return start;};
-        Coordinates GetEndCoordinates() {return end;};
+        Coordinates GetStartCoordinates() {return Coordinates(start);};
+        Coordinates GetEndCoordinates() {return Coordinates(end);};
 
         float GetAngle();
         float Length() {

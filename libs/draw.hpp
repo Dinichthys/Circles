@@ -16,7 +16,7 @@ const char* const kWindowName = "Graphics";
 const int kTimeForSleeping = 100000;
 const float kIBaseRGB[3] = {19, 19, 19};
 const Coordinates kIBase(3, kIBaseRGB);
-const float kEyeHeight = 500;
+const float kEyeHeight = 1000;
 const float kPowCosB = 32;
 const float kMaxColor = 255;
 
@@ -34,10 +34,10 @@ class Light {
             :brightness(brightness_val), position(position_val) {};
 
         Coordinates GetBrightness() const {
-            return brightness;
+            return Coordinates(brightness);
         };
         Coordinates GetPosition() const {
-            return position;
+            return Coordinates(position);
         };
 };
 
@@ -58,8 +58,10 @@ class SceneManager {
     public:
         SceneManager(const Circle* circles_val, size_t circles_num, const Light* lights_val, size_t lights_num,
                      const Graph* graphs_val, size_t graphs_num, const MyVector* vectors_val, size_t vectors_num) {
-            ASSERT(circles != NULL, "");
-            ASSERT(lights != NULL, "");
+            ASSERT(circles_val != NULL, "");
+            ASSERT(lights_val != NULL, "");
+            ASSERT(graphs_val != NULL, "");
+            ASSERT(vectors_val != NULL, "");
 
             circles = (Circle*) calloc(circles_num, sizeof(Circle));
             SceneManager::circles_num = circles_num;
@@ -113,9 +115,13 @@ class SceneManager {
         ~SceneManager() {
             free(circles);
             free(lights);
+            free(graphs);
+            free(vectors);
 
             circles = NULL;
             lights = NULL;
+            graphs = NULL;
+            vectors = NULL;
         };
 
         Circle* GetCircleArray() const {return circles;};

@@ -14,7 +14,7 @@ class Circle {
             radius = radius_val;
         };
 
-        Coordinates GetCenterCoordinates() const {return center;};
+        Coordinates GetCenterCoordinates() const {return Coordinates(center);};
         float GetRadius() const {return radius;};
 };
 

@@ -22,9 +22,9 @@ class Graph {
     public:
         Graph(Coordinates lt_corner_val, Coordinates rb_corner_val, Coordinates start_val, float scale_val);
 
-        Coordinates GetLTCoordinates() const {return lt_corner;};
-        Coordinates GetRBCoordinates() const {return rb_corner;};
-        Coordinates GetStartCoordinates() const {return start_point;};
+        Coordinates GetLTCoordinates() const {return Coordinates(lt_corner);};
+        Coordinates GetRBCoordinates() const {return Coordinates(rb_corner);};
+        Coordinates GetStartCoordinates() const {return Coordinates(start_point);};
         float GetScale() const {return scale;};
 };
 

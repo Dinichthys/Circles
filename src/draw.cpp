@@ -27,7 +27,7 @@ RendererError Renderer::ShowWindow() {
 
     sf::RectangleShape background(sf::Vector2f((float)screen_width, (float)screen_height));
     background.setPosition(0.f,0.f);
-    background.setFillColor(sf::Color::Black);
+    background.setFillColor(sf::Color::Cyan);
 
     sf::Event event;
     while (window.isOpen()) {
@@ -182,12 +182,15 @@ RendererError Renderer::DrawGraph(Graph graph, float (*func)(float)) {
 }
 
 RendererError Renderer::DrawCircle(Circle circle) {
-    Coordinates center = circle.GetCenterCoordinates();
+    Circle* circles = scene_manager.GetCircleArray();
+    size_t circles_num = scene_manager.GetCircleArrayLen();
     Light* lights = scene_manager.GetLightArray();
     size_t lights_num = scene_manager.GetLightArrayLen();
+    Coordinates center = circle.GetCenterCoordinates();
 
     float eye_coordinates[3] = {(float) (screen_width / 2), (float) (screen_height / 2), kEyeHeight};
     Coordinates eye(3, eye_coordinates);
+    eye = eye - center;
 
     float center_x = center[0];
     float center_y = center[1];
@@ -214,25 +217,65 @@ RendererError Renderer::DrawCircle(Circle circle) {
                 continue;
             }
 
-            float z = sqrt(radius * radius - x * x - y * y);
+            float z = sqrt(radius * radius - x * x - y * y) + center[2];
+            if (z > kEyeHeight) {
+                continue;
+            }
             float coordinates[3] = {x, y, z};
             Coordinates pixel_pos(3, coordinates);
+
+            bool drawable = true;
+            for (size_t circle_index = 0; circle_index < circles_num; circle_index++) {
+                Coordinates checking_center = circles[circle_index].GetCenterCoordinates() - center;
+                float distance = ((checking_center - pixel_pos) || (pixel_pos - eye)).GetModule()
+                                    / (pixel_pos - eye).GetModule();
+                if (distance > circles[circle_index].GetRadius()) {
+                    continue;
+                }
+                float cos = (!(pixel_pos - checking_center)) && (!(pixel_pos - eye));
+                if (cos > 0) {
+                    LOG(kDebug, "cos = %f\n", cos);
+                    drawable = false;
+                    break;
+                }
+            }
+            if (!drawable) {
+                continue;
+            }
+
             Coordinates color(kIBase);
             for (size_t light_index = 0; light_index < lights_num; light_index++) {
                 Light light(lights[light_index]);
                 Coordinates light_coordinates(light.GetPosition());
                 Coordinates brightness(light.GetBrightness());
-                light_coordinates.SetCoordinate(0, light_coordinates[0] -  center_x);
-                light_coordinates.SetCoordinate(1, light_coordinates[1] -  center_y);
+                light_coordinates = light_coordinates - center;
 
-                float cos_a = (!pixel_pos)^(!(light_coordinates - pixel_pos));
+                bool drawable = true;
+                for (size_t circle_index = 0; circle_index < circles_num; circle_index++) {
+                    Coordinates checking_center = circles[circle_index].GetCenterCoordinates() - center;
+                    float distance = ((checking_center - pixel_pos) || (pixel_pos - light_coordinates)).GetModule()
+                                     / (pixel_pos - light_coordinates).GetModule();
+                    if (distance > circles[circle_index].GetRadius()) {
+                        continue;
+                    }
+                    float cos = (!(pixel_pos - checking_center)) && (!(pixel_pos - light_coordinates));
+                    if (cos > 0) {
+                        drawable = false;
+                        break;
+                    }
+                }
+                if (!drawable) {
+                    continue;
+                }
+
+                float cos_a = (!pixel_pos) && (!(light_coordinates - pixel_pos));
 
                 if (cos_a > 0) {
                     color = color + brightness * cos_a;
 
                     float cos_b = ((!(pixel_pos - light_coordinates))
-                                    + (!pixel_pos) * abs((!pixel_pos)^(!(pixel_pos - light_coordinates))) * 2)
-                                    ^(!(eye - pixel_pos));
+                                    + (!pixel_pos) * ((!pixel_pos) && (!(light_coordinates - pixel_pos))) * 2)
+                                    && (!(eye - pixel_pos));
 
                     LOG (kDebug, "Drawing Circles\n"
                                 "\t Analyzing point\n"
