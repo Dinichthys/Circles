@@ -384,31 +384,35 @@ RendererError Renderer::DrawCircles() {
 
             float coeff = -1;
             Circle circle(Coordinates(0, 0, 0, 0));
+            size_t circle_number = -1;
             for (size_t circle_index = 0; circle_index < circles_num; circle_index++) {
                 Coordinates center = circles[circle_index].GetCenterCoordinates();
                 float radius = circles[circle_index].GetRadius();
                 float distance = ((center - pixel_pos) || (pixel_pos - eye_pos)).GetModule()
                                     / (pixel_pos - eye_pos).GetModule();
-                if (distance < radius) {
-                    float a = (pixel_pos - eye_pos).SqLength();
-                    float b = 2 * ((pixel_pos - eye_pos) && (pixel_pos - center));
-                    float c = (pixel_pos - center).SqLength() - radius * radius;
-                    float discrim = b * b - 4 * a * c;
-                    if (discrim < 0) {
-                        continue;
-                    }
-                    discrim = sqrt(discrim);
-                    float res_minus = (-b - discrim) / (2 * a);
-                    float res_plus = (-b + discrim) / (2 * a);
+                if (distance > radius) {
+                    continue;
+                }
+                float a = (pixel_pos - eye_pos).SqLength();
+                float b = 2 * ((pixel_pos - eye_pos) && (pixel_pos - center));
+                float c = (pixel_pos - center).SqLength() - radius * radius;
+                float discrim = b * b - 4 * a * c;
+                if (discrim < 0) {
+                    continue;
+                }
+                discrim = sqrt(discrim);
+                float res_minus = (-b - discrim) / (2 * a);
+                float res_plus = (-b + discrim) / (2 * a);
 
-                    if (((res_plus < coeff) || (coeff < 0)) && (res_plus > 0)) {
-                        coeff = res_plus;
-                        circle = circles[circle_index];
-                    }
-                    if (((res_minus < coeff) || (coeff < 0)) && (res_minus > 0)) {
-                        coeff = res_minus;
-                        circle = circles[circle_index];
-                    }
+                if (((res_plus < coeff) || (coeff < 0)) && (res_plus > 0)) {
+                    coeff = res_plus;
+                    circle = circles[circle_index];
+                    circle_number = circle_index;
+                }
+                if (((res_minus < coeff) || (coeff < 0)) && (res_minus > 0)) {
+                    coeff = res_minus;
+                    circle = circles[circle_index];
+                    circle_number = circle_index;
                 }
             }
             if (coeff < 0) {
@@ -430,14 +434,33 @@ RendererError Renderer::DrawCircles() {
 
                 bool drawable = true;
                 for (size_t circle_index = 0; circle_index < circles_num; circle_index++) {
+                    if (circle_index == circle_number) {
+                        continue;
+                    }
                     Coordinates checking_center = circles[circle_index].GetCenterCoordinates();
                     float distance = ((checking_center - point) || (point - light_coordinates)).GetModule()
                                      / (point - light_coordinates).GetModule();
-                    if (distance > circles[circle_index].GetRadius()) {
+                    float radius = circles[circle_index].GetRadius();
+                    if (distance > radius) {
                         continue;
                     }
-                    float cos = (!(point - checking_center)) && (!(point - light_coordinates));
-                    if (cos > 0) {
+
+                    float a = (point - light_coordinates).SqLength();
+                    float b = 2 * ((point - light_coordinates) && (point - checking_center));
+                    float c = (point - checking_center).SqLength() - radius * radius;
+                    float discrim = b * b - 4 * a * c;
+                    if (discrim < 0) {
+                        continue;
+                    }
+                    discrim = sqrt(discrim);
+                    float res_minus = (-b - discrim) / (2 * a);
+                    float res_plus = (-b + discrim) / (2 * a);
+
+                    if (res_plus < 0) {
+                        drawable = false;
+                        break;
+                    }
+                    if (res_minus < 0) {
                         drawable = false;
                         break;
                     }
