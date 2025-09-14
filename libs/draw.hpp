@@ -14,14 +14,29 @@
 
 const char* const kWindowName = "Graphics";
 const int kTimeForSleeping = 100000;
-const float kIBaseRGB[3] = {19, 19, 19};
-const Coordinates kIBase(3, kIBaseRGB);
+const Coordinates kIBase(3, 19, 19, 19);
 const float kEyeHeight = 1000;
 const float kPowCosB = 32;
 const float kMaxColor = 255;
+const float kWindowDistance = 688;
+const float kStepEye = 10;
+const float kCosRotate = 0.9961947;
+const float kSinRotate = 0.08715574;
 
 enum RendererError {
     kDoneRenderer = 0,
+};
+
+enum MoveCamera {
+    kRightMove   = 86,  // Keyboard Right arrow
+    kLeftMove    = 87,  // Keyboard Left arrow
+    kBackMove    = 88,  // Keyboard Down arrow
+    kForwardMove = 89,  // Keyboard Up arrow
+
+    kRightRotate = 3,  // Keyboard D and d key
+    kLeftRotate  = 0,  // Keyboard A and a key
+    kDownRotate  = 18,  // Keyboard S and s key
+    kUpRotate    = 22,  // Keyboard W and w key
 };
 
 class Light {
@@ -30,7 +45,7 @@ class Light {
         Coordinates position;
 
     public:
-        Light(Coordinates brightness_val, Coordinates position_val)
+        explicit Light(Coordinates brightness_val, Coordinates position_val)
             :brightness(brightness_val), position(position_val) {};
 
         Coordinates GetBrightness() const {
@@ -39,6 +54,36 @@ class Light {
         Coordinates GetPosition() const {
             return Coordinates(position);
         };
+};
+
+class Eye {
+    private:
+        Coordinates pos;
+        Coordinates lt_corner;
+        Coordinates lb_corner;
+        Coordinates rt_corner;
+        Coordinates rb_corner;
+
+    public:
+        explicit Eye(Coordinates pos_val,
+                     Coordinates lt_val, Coordinates lb_val, Coordinates rt_val, Coordinates rb_val)
+            :pos(pos_val), lt_corner(lt_val), lb_corner(lb_val), rt_corner(rt_val), rb_corner(rb_val) {};
+
+        Coordinates GetEyePos() const {return Coordinates(pos);};
+        Coordinates GetEyeLTCorner() const {return Coordinates(lt_corner);};
+        Coordinates GetEyeLBCorner() const {return Coordinates(lb_corner);};
+        Coordinates GetEyeRTCorner() const {return Coordinates(rt_corner);};
+        Coordinates GetEyeRBCorner() const {return Coordinates(rb_corner);};
+
+        void SetEyePos(Coordinates pos_val) {pos = pos_val;};
+        void SetEyePosX(float x) {pos.SetCoordinate(0, x);};
+        void SetEyePosY(float y) {pos.SetCoordinate(1, y);};
+        void SetEyePosZ(float z) {pos.SetCoordinate(2, z);};
+
+        void SetEyeLTCorner(Coordinates lt_corner_val) {lt_corner = lt_corner_val;};
+        void SetEyeLBCorner(Coordinates lb_corner_val) {lb_corner = lb_corner_val;};
+        void SetEyeRTCorner(Coordinates rt_corner_val) {rt_corner = rt_corner_val;};
+        void SetEyeRBCorner(Coordinates rb_corner_val) {rb_corner = rb_corner_val;};
 };
 
 class SceneManager {
@@ -55,9 +100,13 @@ class SceneManager {
         MyVector* vectors;
         size_t vectors_num;
 
+        Eye eye;
+
     public:
         SceneManager(const Circle* circles_val, size_t circles_num, const Light* lights_val, size_t lights_num,
-                     const Graph* graphs_val, size_t graphs_num, const MyVector* vectors_val, size_t vectors_num) {
+                     const Graph* graphs_val, size_t graphs_num, const MyVector* vectors_val, size_t vectors_num,
+                     const Eye& eye_val)
+            :eye(eye_val) {
             ASSERT(circles_val != NULL, "");
             ASSERT(lights_val != NULL, "");
             ASSERT(graphs_val != NULL, "");
@@ -132,6 +181,7 @@ class SceneManager {
         size_t  GetGraphArrayLen() const {return graphs_num;};
         MyVector* GetVectorArray() const {return vectors;};
         size_t  GetVectorArrayLen() const {return vectors_num;};
+        Eye* GetEye() {return &eye;};
 };
 
 class Renderer {
@@ -143,11 +193,16 @@ class Renderer {
         SceneManager scene_manager;
 
     public:
-        Renderer(unsigned int width, unsigned int height,
+        explicit Renderer(unsigned int width, unsigned int height,
                  const Circle* circles, size_t circles_num, const Light* lights, size_t lights_num,
                  const Graph* graphs, size_t graphs_num, const MyVector* vectors, size_t vectors_num)
             : window(sf::VideoMode ({width, height}), kWindowName),
-              scene_manager(circles, circles_num, lights, lights_num, graphs, graphs_num, vectors, vectors_num) {
+              scene_manager(circles, circles_num, lights, lights_num, graphs, graphs_num, vectors, vectors_num,
+                            Eye(Coordinates(3, (float)(width / 2), (float)(height / 2), - kEyeHeight),
+                                Coordinates(3,-(float)(width / 2),-(float)(height / 2), kWindowDistance),
+                                Coordinates(3,-(float)(width / 2), (float)(height / 2), kWindowDistance),
+                                Coordinates(3, (float)(width / 2),-(float)(height / 2), kWindowDistance),
+                                Coordinates(3, (float)(width / 2), (float)(height / 2), kWindowDistance))) {
             screen_width = width;
             screen_height = height;
         };
@@ -163,10 +218,15 @@ class Renderer {
         RendererError ShowWindow();
 
     private:
+        RendererError AnalyseKey(const sf::Event event);
+        RendererError RotateCameraUp();
+        RendererError RotateCameraDown();
+        RendererError RotateCameraLeft();
+        RendererError RotateCameraRight();
         RendererError DrawCoordinatesSystem(Graph graph);
         RendererError DrawAxis(Graph graph);
         RendererError DrawGraph(Graph graph, float (*func)(float));
-        RendererError DrawCircle(Circle circle);
+        RendererError DrawCircles();
         RendererError DrawVector(MyVector vector);
 };
 

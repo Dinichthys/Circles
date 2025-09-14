@@ -20,7 +20,7 @@ class Graph {
         float scale;
 
     public:
-        Graph(Coordinates lt_corner_val, Coordinates rb_corner_val, Coordinates start_val, float scale_val);
+        explicit Graph(Coordinates lt_corner_val, Coordinates rb_corner_val, Coordinates start_val, float scale_val);
 
         Coordinates GetLTCoordinates() const {return Coordinates(lt_corner);};
         Coordinates GetRBCoordinates() const {return Coordinates(rb_corner);};

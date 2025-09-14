@@ -19,186 +19,119 @@ enum CoordinatesError {
 
 class Coordinates {
     private:
-        float* coordinates;
+        float x;
+        float y;
+        float z;
         size_t dimension;
 
     public:
         explicit Coordinates(const Coordinates& need_copy) {
-            ASSERT(need_copy.coordinates != NULL, "");
             dimension = need_copy.dimension;
-            coordinates = (float*) calloc(dimension, sizeof(float));
-            if (coordinates == NULL) {
-                throw "Can't calloc coordinates";
-            }
-            for (size_t i = 0; i < dimension; i++) {
-                coordinates[i] = need_copy.coordinates[i];
-            }
+            x = need_copy.x;
+            y = need_copy.y;
+            z = need_copy.z;
         };
-        explicit Coordinates(size_t dimension, const float* values = NULL) {
+        explicit Coordinates(size_t dimension, float x = 0, float y = 0, float z = 0) {
             Coordinates::dimension = dimension;
-            coordinates = (float*) calloc(dimension, sizeof(float));
-            if (coordinates == NULL) {
-                throw "Can't calloc coordinates";
-            }
-            if (values == NULL) {
-                for (size_t i = 0; i < dimension; i++) {
-                    coordinates[i] = 0;
-                }
-            } else {
-                for (size_t i = 0; i < dimension; i++) {
-                    coordinates[i] = values[i];
-                }
-            }
+            Coordinates::x = x;
+            Coordinates::y = y;
+            Coordinates::z = z;
         };
-        ~Coordinates() {
-            free(coordinates);
-            coordinates = NULL;
-        }
 
         CoordinatesError SetCoordinate(size_t index, float value) {
             if (index >= dimension) {
                 return kCantSetCoordinates;
             }
-            coordinates[index] = value;
-
+            switch (index) {
+                case 0:
+                    x = value;
+                    break;
+                case 1:
+                    y = value;
+                    break;
+                case 2:
+                    z = value;
+                    break;
+            };
             return kDoneCoordinates;
         };
+
         float GetCoordinate(size_t index) const {
             if (index >= dimension) {
                 return NAN;
             }
-            return coordinates[index];
+            switch (index) {
+                case 0:
+                    return x;
+                case 1:
+                    return y;
+                case 2:
+                    return z;
+                default:
+                    return NAN;
+            };
         };
-        float* GetArrayCoordinates() const {
-            return coordinates;
-        };
+
         size_t GetDimension() const {
             return dimension;
         };
+
+        float SqLength() const {
+            return (*this) && (*this);
+        };
+
         float GetModule() const {
-            float mod = 0;
-            for (size_t i = 0; i < dimension; i++)  {
-                mod += coordinates[i] * coordinates[i];
-            }
-            return sqrt(mod);
+            return sqrt(SqLength());
         };
 
         float operator [] (size_t index) const {
-            if (index >= dimension) {
-                return NAN;
-            }
-            return coordinates[index];
+            return GetCoordinate(index);
         };
+
         Coordinates operator + (const Coordinates& a) const {
-            float* result = (float*) calloc(dimension, sizeof(float));
-            if (result == NULL) {
-                return Coordinates(0, NULL);
-            }
-            for (size_t i = 0; i < dimension; i++) {
-                result[i] = coordinates[i] + a[i];
-            }
-            Coordinates ret_val(dimension, result);
-            free(result);
-            return Coordinates(ret_val);
+            return Coordinates(dimension, x + a.x, y + a.y, z + a.z);
         };
+
         Coordinates operator + (float val) const {
-            float* result = (float*) calloc(dimension, sizeof(float));
-            if (result == NULL) {
-                return Coordinates(0, NULL);
-            }
-            for (size_t i = 0; i < dimension; i++) {
-                result[i] = coordinates[i] + val;
-            }
-            Coordinates ret_val(dimension, result);
-            free(result);
-            return Coordinates(ret_val);
+            return Coordinates(dimension, x + val, y + val, z + val);
         };
+
         Coordinates operator - (const Coordinates& a) const {
-            float* result = (float*) calloc(dimension, sizeof(float));
-            if (result == NULL) {
-                return Coordinates(0, NULL);
-            }
-            for (size_t i = 0; i < dimension; i++) {
-                result[i] = coordinates[i] - a[i];
-            }
-            Coordinates ret_val(dimension, result);
-            free(result);
-            return Coordinates(ret_val);
+            return Coordinates(dimension, x - a.x, y - a.y, z - a.z);
         };
+
         Coordinates operator - (float val) const {
-            float* result = (float*) calloc(dimension, sizeof(float));
-            if (result == NULL) {
-                return Coordinates(0, NULL);
-            }
-            for (size_t i = 0; i < dimension; i++) {
-                result[i] = coordinates[i] - val;
-            }
-            Coordinates ret_val(dimension, result);
-            free(result);
-            return Coordinates(ret_val);
+            return Coordinates(dimension, x - val, y - val, z - val);
         };
+
         Coordinates operator * (float val) const {
-            float* result = (float*) calloc(dimension, sizeof(float));
-            if (result == NULL) {
-                return Coordinates(0, NULL);
-            }
-            for (size_t i = 0; i < dimension; i++) {
-                result[i] = coordinates[i] * val;
-            }
-            Coordinates ret_val(dimension, result);
-            free(result);
-            return Coordinates(ret_val);
+            return Coordinates(dimension, x * val, y * val, z * val);
         };
+
         Coordinates operator / (float val) const {
-            float* result = (float*) calloc(dimension, sizeof(float));
-            if (result == NULL) {
-                return Coordinates(0, NULL);
-            }
-            for (size_t i = 0; i < dimension; i++) {
-                result[i] = coordinates[i] / val;
-            }
-            Coordinates ret_val(dimension, result);
-            free(result);
-            return Coordinates(ret_val);
+            return Coordinates(dimension, x / val, y / val, z / val);
         };
+
         Coordinates operator ! () {
             float len = GetModule();
             return *this / len;
         };
+
         float operator && (const Coordinates& a) const {
-            float result = 0;
-            for (size_t i = 0; i < dimension; i++) {
-                result += coordinates[i] * a[i];
-            }
-            return result;
+            return x * a.x + y * a.y + z * a.z;
         };
+
         Coordinates operator || (const Coordinates& a) const {
-            Coordinates result(dimension);
-            result.SetCoordinate(0, (*this)[1] * a[2] - (*this)[2] * a[1]);
-            result.SetCoordinate(1, (*this)[2] * a[0] - (*this)[0] * a[2]);
-            result.SetCoordinate(2, (*this)[0] * a[1] - (*this)[1] * a[0]);
-            return Coordinates(result);
+            return Coordinates(dimension, y * a.z - z * a.y,
+                                          z * a.x - x * a.z,
+                                          x * a.y - y * a.x);
         };
-        // float operator & () const {
-        //     return GetModule();
-        // };
+
         void operator = (const Coordinates& need_copy) {
-            ASSERT(need_copy.coordinates != NULL, "");
-            if (need_copy.coordinates == coordinates) {
-                return;
-            }
-            if (coordinates != NULL) {
-                free(coordinates);
-                coordinates = NULL;
-            }
             dimension = need_copy.dimension;
-            coordinates = (float*) calloc(dimension, sizeof(float));
-            if (coordinates == NULL) {
-                throw "Can't calloc coordinates";
-            }
-            for (size_t i = 0; i < dimension; i++) {
-                coordinates[i] = need_copy.coordinates[i];
-            }
+            x = need_copy.x;
+            y = need_copy.y;
+            z = need_copy.z;
         };
 };
 
@@ -208,7 +141,7 @@ class MyVector {
         Coordinates end;
 
     public:
-        MyVector(Coordinates start_val, Coordinates end_val)
+        explicit MyVector(Coordinates start_val, Coordinates end_val)
             :start(start_val), end(end_val) {
             if (start.GetDimension() != end.GetDimension()) {
                 throw "Different dimensions of the ends of vector";

@@ -18,8 +18,6 @@
 #include "my_assert.h"
 
 RendererError Renderer::ShowWindow() {
-    Circle* circles = scene_manager.GetCircleArray();
-    size_t circles_num = scene_manager.GetCircleArrayLen();
     Graph* graphs = scene_manager.GetGraphArray();
     size_t graphs_num = scene_manager.GetGraphArrayLen();
     MyVector* vectors = scene_manager.GetVectorArray();
@@ -34,31 +32,209 @@ RendererError Renderer::ShowWindow() {
         while (window.pollEvent(event)) {
             if (event.type == sf::Event::Closed) {
                 window.close();
+                break;
             }
+            AnalyseKey(event);
         }
 
         LOG(kDebug, "Drawing window");
 
         window.draw(background);
 
-        for (size_t index = 0; index < graphs_num; index++) {
-            DrawCoordinatesSystem(graphs[index]);
-        }
+        // for (size_t index = 0; index < graphs_num; index++) {
+        //     DrawCoordinatesSystem(graphs[index]);
+        // }
 
-        for (size_t index = 0; index < circles_num; index++) {
-            DrawCircle(circles[index]);
-        }
+        DrawCircles();
 
-        for (size_t index = 0; index < vectors_num; index++) {
-            DrawVector(vectors[index]);
-
-            vectors[index].Rotate(kRotationAngle);
-        }
+//         for (size_t index = 0; index < vectors_num; index++) {
+//             DrawVector(vectors[index]);
+//
+//             vectors[index].Rotate(kRotationAngle);
+//         }
 
         usleep(kTimeForSleeping);
 
         window.display();
     }
+
+    return kDoneRenderer;
+}
+
+RendererError Renderer::AnalyseKey(const sf::Event event) {
+    enum MoveCamera scancode = (MoveCamera)event.key.scancode;
+    if (scancode == kForwardMove) {
+        Eye* eye = scene_manager.GetEye();
+        (*eye).SetEyePos((*eye).GetEyePos() + !((*eye).GetEyeLTCorner() + (*eye).GetEyeRBCorner()) * kStepEye);
+        return kDoneRenderer;
+    }
+    if (scancode == kBackMove) {
+        Eye* eye = scene_manager.GetEye();
+        (*eye).SetEyePos((*eye).GetEyePos() - !((*eye).GetEyeLTCorner() + (*eye).GetEyeRBCorner()) * kStepEye);
+        return kDoneRenderer;
+    }
+    if (scancode == kLeftMove) {
+        Eye* eye = scene_manager.GetEye();
+        (*eye).SetEyePos((*eye).GetEyePos() + !((*eye).GetEyeLTCorner() - (*eye).GetEyeRTCorner()) * kStepEye);
+        return kDoneRenderer;
+    }
+    if (scancode == kRightMove) {
+        Eye* eye = scene_manager.GetEye();
+        (*eye).SetEyePos((*eye).GetEyePos() - !((*eye).GetEyeLTCorner() - (*eye).GetEyeRTCorner()) * kStepEye);
+        return kDoneRenderer;
+    }
+    if (scancode == kUpRotate) {
+        return RotateCameraUp();
+    }
+    if (scancode == kDownRotate) {
+        return RotateCameraDown();
+    }
+    if (scancode == kLeftRotate) {
+        return RotateCameraLeft();
+    }
+    if (scancode == kRightRotate) {
+        return RotateCameraRight();
+    }
+
+    return kDoneRenderer;
+}
+
+RendererError Renderer::RotateCameraUp() {
+    Eye* eye = scene_manager.GetEye();
+    Coordinates lt_corner = eye->GetEyeLTCorner();
+    Coordinates lb_corner = eye->GetEyeLBCorner();
+    Coordinates rt_corner = eye->GetEyeRTCorner();
+    Coordinates rb_corner = eye->GetEyeRBCorner();
+
+    Coordinates hor_vec = (lt_corner - rt_corner) / 2;
+    Coordinates vec = lt_corner - hor_vec;
+    float hor_length = sqrt(vec[0] * vec[0] + vec[2] * vec[2]);
+    lt_corner.SetCoordinate(0, hor_vec[0] + vec[0] * (kCosRotate + vec[1] * kSinRotate / hor_length));
+    lt_corner.SetCoordinate(1, hor_vec[1] + vec[1] * kCosRotate - kSinRotate * hor_length);
+    lt_corner.SetCoordinate(2, hor_vec[2] + vec[2] * (kCosRotate + vec[1] * kSinRotate / hor_length));
+    (*eye).SetEyeLTCorner(Coordinates(lt_corner));
+
+    vec = lb_corner - hor_vec;
+    hor_length = sqrt(vec[0] * vec[0] + vec[2] * vec[2]);
+    lb_corner.SetCoordinate(0, hor_vec[0] + vec[0] * (kCosRotate + vec[1] * kSinRotate / hor_length));
+    lb_corner.SetCoordinate(1, hor_vec[1] + vec[1] * kCosRotate - kSinRotate * hor_length);
+    lb_corner.SetCoordinate(2, hor_vec[2] + vec[2] * (kCosRotate + vec[1] * kSinRotate / hor_length));
+    (*eye).SetEyeLBCorner(Coordinates(lb_corner));
+
+    vec = rt_corner + hor_vec;
+    hor_length = sqrt(vec[0] * vec[0] + vec[2] * vec[2]);
+    rt_corner.SetCoordinate(0, -hor_vec[0] + vec[0] * (kCosRotate + vec[1] * kSinRotate / hor_length));
+    rt_corner.SetCoordinate(1, -hor_vec[1] + vec[1] * kCosRotate - kSinRotate * hor_length);
+    rt_corner.SetCoordinate(2, -hor_vec[2] + vec[2] * (kCosRotate + vec[1] * kSinRotate / hor_length));
+    (*eye).SetEyeRTCorner(Coordinates(rt_corner));
+
+    vec = rb_corner + hor_vec;
+    hor_length = sqrt(vec[0] * vec[0] + vec[2] * vec[2]);
+    rb_corner.SetCoordinate(0, -hor_vec[0] + vec[0] * (kCosRotate + vec[1] * kSinRotate / hor_length));
+    rb_corner.SetCoordinate(1, -hor_vec[1] + vec[1] * kCosRotate - kSinRotate * hor_length);
+    rb_corner.SetCoordinate(2, -hor_vec[2] + vec[2] * (kCosRotate + vec[1] * kSinRotate / hor_length));
+    (*eye).SetEyeRBCorner(Coordinates(rb_corner));
+
+    return kDoneRenderer;
+}
+
+RendererError Renderer::RotateCameraDown() {
+    Eye* eye = scene_manager.GetEye();
+    Coordinates lt_corner = eye->GetEyeLTCorner();
+    Coordinates lb_corner = eye->GetEyeLBCorner();
+    Coordinates rt_corner = eye->GetEyeRTCorner();
+    Coordinates rb_corner = eye->GetEyeRBCorner();
+
+    Coordinates hor_vec = (lt_corner - rt_corner) / 2;
+    Coordinates vec = lt_corner - hor_vec;
+    float hor_length = sqrt(vec[0] * vec[0] + vec[2] * vec[2]);
+    lt_corner.SetCoordinate(0, hor_vec[0] + vec[0] * (kCosRotate - vec[1] * kSinRotate / hor_length));
+    lt_corner.SetCoordinate(1, hor_vec[1] + vec[1] * kCosRotate + kSinRotate * hor_length);
+    lt_corner.SetCoordinate(2, hor_vec[2] + vec[2] * (kCosRotate - vec[1] * kSinRotate / hor_length));
+    (*eye).SetEyeLTCorner(Coordinates(lt_corner));
+
+    vec = lb_corner - hor_vec;
+    hor_length = sqrt(vec[0] * vec[0] + vec[2] * vec[2]);
+    lb_corner.SetCoordinate(0, hor_vec[0] + vec[0] * (kCosRotate - vec[1] * kSinRotate / hor_length));
+    lb_corner.SetCoordinate(1, hor_vec[1] + vec[1] * kCosRotate + kSinRotate * hor_length);
+    lb_corner.SetCoordinate(2, hor_vec[2] + vec[2] * (kCosRotate - vec[1] * kSinRotate / hor_length));
+    (*eye).SetEyeLBCorner(Coordinates(lb_corner));
+
+    vec = rt_corner + hor_vec;
+    hor_length = sqrt(vec[0] * vec[0] + vec[2] * vec[2]);
+    rt_corner.SetCoordinate(0, -hor_vec[0] + vec[0] * (kCosRotate - vec[1] * kSinRotate / hor_length));
+    rt_corner.SetCoordinate(1, -hor_vec[1] + vec[1] * kCosRotate + kSinRotate * hor_length);
+    rt_corner.SetCoordinate(2, -hor_vec[2] + vec[2] * (kCosRotate - vec[1] * kSinRotate / hor_length));
+    (*eye).SetEyeRTCorner(Coordinates(rt_corner));
+
+    vec = rb_corner + hor_vec;
+    hor_length = sqrt(vec[0] * vec[0] + vec[2] * vec[2]);
+    rb_corner.SetCoordinate(0, -hor_vec[0] + vec[0] * (kCosRotate - vec[1] * kSinRotate / hor_length));
+    rb_corner.SetCoordinate(1, -hor_vec[1] + vec[1] * kCosRotate + kSinRotate * hor_length);
+    rb_corner.SetCoordinate(2, -hor_vec[2] + vec[2] * (kCosRotate - vec[1] * kSinRotate / hor_length));
+    (*eye).SetEyeRBCorner(Coordinates(rb_corner));
+
+    return kDoneRenderer;
+}
+
+RendererError Renderer::RotateCameraLeft() {
+    Eye* eye = scene_manager.GetEye();
+    Coordinates lt_corner = eye->GetEyeLTCorner();
+    Coordinates lb_corner = eye->GetEyeLBCorner();
+    Coordinates rt_corner = eye->GetEyeRTCorner();
+    Coordinates rb_corner = eye->GetEyeRBCorner();
+
+    Coordinates ver_vec = (lt_corner - lb_corner) / 2;
+    Coordinates vec = lt_corner - ver_vec;
+    lt_corner.SetCoordinate(0, lt_corner[0] * kCosRotate - lt_corner[2] * kSinRotate);
+    lt_corner.SetCoordinate(2, lt_corner[2] * kCosRotate + lt_corner[0] * kSinRotate);
+    (*eye).SetEyeLTCorner(Coordinates(lt_corner));
+
+    vec = lb_corner - ver_vec;
+    lb_corner.SetCoordinate(0, lb_corner[0] * kCosRotate - lb_corner[2] * kSinRotate);
+    lb_corner.SetCoordinate(2, lb_corner[2] * kCosRotate + lb_corner[0] * kSinRotate);
+    (*eye).SetEyeLBCorner(Coordinates(lb_corner));
+
+    vec = rt_corner + ver_vec;
+    rt_corner.SetCoordinate(0, rt_corner[0] * kCosRotate - rt_corner[2] * kSinRotate);
+    rt_corner.SetCoordinate(2, rt_corner[2] * kCosRotate + rt_corner[0] * kSinRotate);
+    (*eye).SetEyeRTCorner(Coordinates(rt_corner));
+
+    vec = rb_corner + ver_vec;
+    rb_corner.SetCoordinate(0, rb_corner[0] * kCosRotate - rb_corner[2] * kSinRotate);
+    rb_corner.SetCoordinate(2, rb_corner[2] * kCosRotate + rb_corner[0] * kSinRotate);
+    (*eye).SetEyeRBCorner(Coordinates(rb_corner));
+
+    return kDoneRenderer;
+}
+
+RendererError Renderer::RotateCameraRight() {
+    Eye* eye = scene_manager.GetEye();
+    Coordinates lt_corner = eye->GetEyeLTCorner();
+    Coordinates lb_corner = eye->GetEyeLBCorner();
+    Coordinates rt_corner = eye->GetEyeRTCorner();
+    Coordinates rb_corner = eye->GetEyeRBCorner();
+
+    Coordinates ver_vec = (lt_corner - lb_corner) / 2;
+    Coordinates vec = lt_corner - ver_vec;
+    lt_corner.SetCoordinate(0, lt_corner[0] * kCosRotate + lt_corner[2] * kSinRotate);
+    lt_corner.SetCoordinate(2, lt_corner[2] * kCosRotate - lt_corner[0] * kSinRotate);
+    (*eye).SetEyeLTCorner(Coordinates(lt_corner));
+
+    vec = lb_corner - ver_vec;
+    lb_corner.SetCoordinate(0, lb_corner[0] * kCosRotate + lb_corner[2] * kSinRotate);
+    lb_corner.SetCoordinate(2, lb_corner[2] * kCosRotate - lb_corner[0] * kSinRotate);
+    (*eye).SetEyeLBCorner(Coordinates(lb_corner));
+
+    vec = rt_corner + ver_vec;
+    rt_corner.SetCoordinate(0, rt_corner[0] * kCosRotate + rt_corner[2] * kSinRotate);
+    rt_corner.SetCoordinate(2, rt_corner[2] * kCosRotate - rt_corner[0] * kSinRotate);
+    (*eye).SetEyeRTCorner(Coordinates(rt_corner));
+
+    vec = rb_corner + ver_vec;
+    rb_corner.SetCoordinate(0, rb_corner[0] * kCosRotate + rb_corner[2] * kSinRotate);
+    rb_corner.SetCoordinate(2, rb_corner[2] * kCosRotate - rb_corner[0] * kSinRotate);
+    (*eye).SetEyeRBCorner(Coordinates(rb_corner));
 
     return kDoneRenderer;
 }
@@ -181,67 +357,69 @@ RendererError Renderer::DrawGraph(Graph graph, float (*func)(float)) {
     return kDoneRenderer;
 }
 
-RendererError Renderer::DrawCircle(Circle circle) {
+RendererError Renderer::DrawCircles() {
     Circle* circles = scene_manager.GetCircleArray();
     size_t circles_num = scene_manager.GetCircleArrayLen();
     Light* lights = scene_manager.GetLightArray();
     size_t lights_num = scene_manager.GetLightArrayLen();
-    Coordinates center = circle.GetCenterCoordinates();
 
-    float eye_coordinates[3] = {(float) (screen_width / 2), (float) (screen_height / 2), kEyeHeight};
-    Coordinates eye(3, eye_coordinates);
-    eye = eye - center;
+    Eye eye = *(scene_manager.GetEye());
+    Coordinates eye_pos = eye.GetEyePos();
+    Coordinates lt_corner = eye.GetEyeLTCorner();
+    Coordinates lb_corner = eye.GetEyeLBCorner();
+    Coordinates rt_corner = eye.GetEyeRTCorner();
 
-    float center_x = center[0];
-    float center_y = center[1];
-    float radius = circle.GetRadius();
-    float lt_corner_x = center_x - radius;
-    float lt_corner_y = center_y - radius;;
-    float width = radius * 2;
-    float height = radius * 2;
+    Coordinates hor_vec = !(rt_corner - lt_corner);
+    Coordinates ver_vec = !(lb_corner - lt_corner);
+    LOG(kDebug, "hor_vec: %f, %f, %f\n", hor_vec[0], hor_vec[1], hor_vec[2]);
+    LOG(kDebug, "ver_vec: %f, %f, %f\n", ver_vec[0], ver_vec[1], ver_vec[2]);
 
-    LOG(kDebug, "Draw Circles\n"
-                "\t Height = %f\n"
-                "\t Width  = %f\n"
-                "\t Radius = %f\n",
-                height, width, radius);
+    sf::VertexArray vertices (sf::PrimitiveType::Points, (size_t) (screen_width * screen_height));
+    Coordinates pixel_pos(eye_pos + lt_corner);
+    for (unsigned int i = 0; i < screen_height; i++) {
+        pixel_pos = eye_pos + lt_corner + ver_vec * i;
+        for (unsigned int j = 0; j < screen_width; j++) {
+            pixel_pos = pixel_pos + hor_vec;
+            LOG(kDebug, "Pixel pos: %f, %f, %f\n", pixel_pos[0], pixel_pos[1], pixel_pos[2]);
 
-    sf::VertexArray vertices (sf::PrimitiveType::Points, (size_t) (height * width));
-    size_t vertices_num = 0;
-    for (float i = 0; i < height; i++) {
-        float y = i + lt_corner_y - center_y;
-        for (float j = 0; j < width; j++) {
-            float x = j + lt_corner_x - center_x;
-
-            if (y * y + x * x > radius * radius) {
-                continue;
-            }
-
-            float z = sqrt(radius * radius - x * x - y * y) + center[2];
-            if (z > kEyeHeight) {
-                continue;
-            }
-            float coordinates[3] = {x, y, z};
-            Coordinates pixel_pos(3, coordinates);
-
-            bool drawable = true;
+            float coeff = -1;
+            Circle circle(Coordinates(0, 0, 0, 0));
             for (size_t circle_index = 0; circle_index < circles_num; circle_index++) {
-                Coordinates checking_center = circles[circle_index].GetCenterCoordinates() - center;
-                float distance = ((checking_center - pixel_pos) || (pixel_pos - eye)).GetModule()
-                                    / (pixel_pos - eye).GetModule();
-                if (distance > circles[circle_index].GetRadius()) {
-                    continue;
-                }
-                float cos = (!(pixel_pos - checking_center)) && (!(pixel_pos - eye));
-                if (cos > 0) {
-                    LOG(kDebug, "cos = %f\n", cos);
-                    drawable = false;
-                    break;
+                Coordinates center = circles[circle_index].GetCenterCoordinates();
+                float radius = circles[circle_index].GetRadius();
+                float distance = ((center - pixel_pos) || (pixel_pos - eye_pos)).GetModule()
+                                    / (pixel_pos - eye_pos).GetModule();
+                if (distance < radius) {
+                    float a = (pixel_pos - eye_pos).SqLength();
+                    float b = 2 * ((pixel_pos - eye_pos) && (pixel_pos - center));
+                    float c = (pixel_pos - center).SqLength() - radius * radius;
+                    float discrim = b * b - 4 * a * c;
+                    if (discrim < 0) {
+                        continue;
+                    }
+                    discrim = sqrt(discrim);
+                    float res_minus = (-b - discrim) / (2 * a);
+                    float res_plus = (-b + discrim) / (2 * a);
+
+                    if (((res_plus < coeff) || (coeff < 0)) && (res_plus > 0)) {
+                        coeff = res_plus;
+                        circle = circles[circle_index];
+                    }
+                    if (((res_minus < coeff) || (coeff < 0)) && (res_minus > 0)) {
+                        coeff = res_minus;
+                        circle = circles[circle_index];
+                    }
                 }
             }
-            if (!drawable) {
+            if (coeff < 0) {
+                vertices[i * screen_width + j].position = {(float)j, (float)i};
+                vertices[i * screen_width + j].color = sf::Color::Cyan;
                 continue;
             }
+
+            Coordinates center = circle.GetCenterCoordinates();
+
+            Coordinates point = pixel_pos + (pixel_pos - eye_pos) * coeff;
 
             Coordinates color(kIBase);
             for (size_t light_index = 0; light_index < lights_num; light_index++) {
@@ -252,13 +430,13 @@ RendererError Renderer::DrawCircle(Circle circle) {
 
                 bool drawable = true;
                 for (size_t circle_index = 0; circle_index < circles_num; circle_index++) {
-                    Coordinates checking_center = circles[circle_index].GetCenterCoordinates() - center;
-                    float distance = ((checking_center - pixel_pos) || (pixel_pos - light_coordinates)).GetModule()
-                                     / (pixel_pos - light_coordinates).GetModule();
+                    Coordinates checking_center = circles[circle_index].GetCenterCoordinates();
+                    float distance = ((checking_center - point) || (point - light_coordinates)).GetModule()
+                                     / (point - light_coordinates).GetModule();
                     if (distance > circles[circle_index].GetRadius()) {
                         continue;
                     }
-                    float cos = (!(pixel_pos - checking_center)) && (!(pixel_pos - light_coordinates));
+                    float cos = (!(point - checking_center)) && (!(point - light_coordinates));
                     if (cos > 0) {
                         drawable = false;
                         break;
@@ -268,22 +446,20 @@ RendererError Renderer::DrawCircle(Circle circle) {
                     continue;
                 }
 
-                float cos_a = (!pixel_pos) && (!(light_coordinates - pixel_pos));
+                float cos_a = (!(point - center)) && (!(light_coordinates - point));
 
                 if (cos_a > 0) {
                     color = color + brightness * cos_a;
 
-                    float cos_b = ((!(pixel_pos - light_coordinates))
-                                    + (!pixel_pos) * ((!pixel_pos) && (!(light_coordinates - pixel_pos))) * 2)
-                                    && (!(eye - pixel_pos));
+                    float cos_b = ((!(point - light_coordinates))
+                                    + (!(point - center)) * ((!(point - center)) && (!(light_coordinates - point))) * 2)
+                                    && (!(eye_pos - point));
 
                     LOG (kDebug, "Drawing Circles\n"
                                 "\t Analyzing point\n"
-                                "\t\t X = %f\n"
-                                "\t\t Y = %f\n"
                                 "\t\t Cos a = %f\n"
                                 "\t\t Cos b = %f\n",
-                                x, y, cos_a, cos_b);
+                                cos_a, cos_b);
 
                     if (cos_b > 0) {
                         color = color + kMaxColor * powf32(cos_b, kPowCosB);
@@ -298,9 +474,8 @@ RendererError Renderer::DrawCircle(Circle circle) {
                 }
             }
 
-            vertices[vertices_num].position = {lt_corner_x + j, lt_corner_y + i};
-            vertices[vertices_num].color = sf::Color((uint8_t)color[0], (uint8_t)color[1], (uint8_t)color[2]);
-            vertices_num++;
+            vertices[i * screen_width + j].position = {(float)j, (float)i};
+            vertices[i * screen_width + j].color = sf::Color((uint8_t)color[0], (uint8_t)color[1], (uint8_t)color[2]);
         }
     }
 
@@ -308,6 +483,127 @@ RendererError Renderer::DrawCircle(Circle circle) {
 
     return kDoneRenderer;
 }
+
+//     Coordinates save_eye_pos(eye_pos);
+//     for (size_t circle_index = 0; circle_index < circles_num; circle_index++) {
+//     Circle circle = circles[circle_index];
+//     Coordinates center = circle.GetCenterCoordinates();
+//     Coordinates eye_pos = save_eye_pos - center;
+//     float center_x = center[0];
+//     float center_y = center[1];
+//     float radius = circle.GetRadius();
+//     float lt_corner_x = center_x - radius;
+//     float lt_corner_y = center_y - radius;;
+//     float width = radius * 2;
+//     float height = radius * 2;
+//
+//     LOG(kDebug, "Draw Circles\n"
+//                 "\t Height = %f\n"
+//                 "\t Width  = %f\n"
+//                 "\t Radius = %f\n",
+//                 height, width, radius);
+//
+//     sf::VertexArray vertices (sf::PrimitiveType::Points, (size_t) (height * width));
+//     size_t vertices_num = 0;
+//     for (float i = 0; i < height; i++) {
+//         float y = i + lt_corner_y - center_y;
+//         for (float j = 0; j < width; j++) {
+//             float x = j + lt_corner_x - center_x;
+//
+//             if (y * y + x * x > radius * radius) {
+//                 continue;
+//             }
+//
+//             float z = sqrt(radius * radius - x * x - y * y) + center[2];
+//             if (z > keye_posHeight) {
+//                 continue;
+//             }
+//             Coordinates pixel_pos(3, x, y, z);
+//
+//             // bool drawable = true;
+//             // for (size_t circle_index = 0; circle_index < circles_num; circle_index++) {
+//             //     Coordinates checking_center = circles[circle_index].GetCenterCoordinates() - center;
+//             //     float distance = ((checking_center - pixel_pos) || (pixel_pos - eye_pos)).GetModule()
+//             //                         / (pixel_pos - eye_pos).GetModule();
+//             //     if (distance > circles[circle_index].GetRadius()) {
+//             //         continue;
+//             //     }
+//             //     float cos = (!(pixel_pos - checking_center)) && (!(pixel_pos - eye_pos));
+//             //     if (cos > 0) {
+//             //         LOG(kDebug, "cos = %f\n", cos);
+//             //         drawable = false;
+//             //         break;
+//             //     }
+//             // }
+//             // if (!drawable) {
+//             //     continue;
+//             // }
+//
+//             Coordinates color(kIBase);
+//             for (size_t light_index = 0; light_index < lights_num; light_index++) {
+//                 Light light(lights[light_index]);
+//                 Coordinates light_coordinates(light.GetPosition());
+//                 Coordinates brightness(light.GetBrightness());
+//                 light_coordinates = light_coordinates - center;
+//
+//                 bool drawable = true;
+//                 for (size_t circle_index = 0; circle_index < circles_num; circle_index++) {
+//                     Coordinates checking_center = circles[circle_index].GetCenterCoordinates() - center;
+//                     float distance = ((checking_center - pixel_pos) || (pixel_pos - light_coordinates)).GetModule()
+//                                      / (pixel_pos - light_coordinates).GetModule();
+//                     if (distance > circles[circle_index].GetRadius()) {
+//                         continue;
+//                     }
+//                     float cos = (!(pixel_pos - checking_center)) && (!(pixel_pos - light_coordinates));
+//                     if (cos > 0) {
+//                         drawable = false;
+//                         break;
+//                     }
+//                 }
+//                 if (!drawable) {
+//                     continue;
+//                 }
+//
+//                 float cos_a = (!pixel_pos) && (!(light_coordinates - pixel_pos));
+//
+//                 if (cos_a > 0) {
+//                     color = color + brightness * cos_a;
+//
+//                     float cos_b = ((!(pixel_pos - light_coordinates))
+//                                     + (!pixel_pos) * ((!pixel_pos) && (!(light_coordinates - pixel_pos))) * 2)
+//                                     && (!(eye_pos - pixel_pos));
+//
+//                     LOG (kDebug, "Drawing Circles\n"
+//                                 "\t Analyzing point\n"
+//                                 "\t\t X = %f\n"
+//                                 "\t\t Y = %f\n"
+//                                 "\t\t Cos a = %f\n"
+//                                 "\t\t Cos b = %f\n",
+//                                 x, y, cos_a, cos_b);
+//
+//                     if (cos_b > 0) {
+//                         color = color + kMaxColor * powf32(cos_b, kPowCosB);
+//                     }
+//                 }
+//
+//                 for (size_t i = 0; i < 3; i++)
+//                 {
+//                     if (color[i] > kMaxColor) {
+//                         color.SetCoordinate(i, kMaxColor);
+//                     }
+//                 }
+//             }
+//
+//             vertices[vertices_num].position = {lt_corner_x + j, lt_corner_y + i};
+//             vertices[vertices_num].color = sf::Color((uint8_t)color[0], (uint8_t)color[1], (uint8_t)color[2]);
+//             vertices_num++;
+//         }
+//     }
+//
+//     window.draw(vertices);
+//     }
+//     return kDoneRenderer;
+// }
 
 RendererError Renderer::DrawVector(MyVector vector) {
     Coordinates start_coordinates(vector.GetStartCoordinates());
