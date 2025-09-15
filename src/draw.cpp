@@ -439,7 +439,7 @@ RendererError Renderer::DrawCircles() {
 
                 bool drawable = true;
                 for (size_t circle_index = 0; circle_index < circles_num; circle_index++) {
-                    if (circle_index == circle_number){
+                    if ((circle_index == circle_number) || (circles[circle_index].GetType() == kLight)) {
                         continue;
                     }
                     Coordinates checking_center = circles[circle_index].GetCenterCoordinates();

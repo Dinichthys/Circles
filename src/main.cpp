@@ -17,13 +17,6 @@ int main() {
               Coordinates(2, 900, 500), 5),
     };
 
-    Light lights[4] = {
-        Light(Coordinates(3, 200, 200, 200), Coordinates(3, 100, 400, 0)),
-        Light(Coordinates(3, 150, 150, 150), Coordinates(3, 600, 600, 1000)),
-        Light(Coordinates(3, 150, 150, 150), Coordinates(3, 1080, 720, -500)),
-        Light(Coordinates(3, 150, 150, 150), Coordinates(3, 840, 760, 100)),
-    };
-
     Circle circles[8] = {
         Circle(Coordinates(3, 100, 0, 0), 400),
         Circle(Coordinates(3, 1000, 1000, 0), 400),

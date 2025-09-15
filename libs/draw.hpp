@@ -40,23 +40,6 @@ enum MoveCamera {
     kUpRotate    = 22,  // Keyboard W and w key
 };
 
-class Light {
-    private:
-        Coordinates brightness;
-        Coordinates position;
-
-    public:
-        explicit Light(Coordinates brightness_val, Coordinates position_val)
-            :brightness(brightness_val), position(position_val) {};
-
-        Coordinates GetBrightness() const {
-            return Coordinates(brightness);
-        };
-        Coordinates GetPosition() const {
-            return Coordinates(position);
-        };
-};
-
 class Eye {
     private:
         Coordinates pos;
