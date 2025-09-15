@@ -22,6 +22,7 @@ const float kWindowDistance = 688;
 const float kStepEye = 10;
 const float kCosRotate = 0.9961947;
 const float kSinRotate = 0.08715574;
+const float kEpsilon = 0.1;
 
 enum RendererError {
     kDoneRenderer = 0,
@@ -91,7 +92,7 @@ class SceneManager {
         Circle* circles;
         size_t circles_num;
 
-        Light*  lights;
+        Circle*  lights;
         size_t lights_num;
 
         Graph* graphs;
@@ -103,8 +104,8 @@ class SceneManager {
         Eye eye;
 
     public:
-        SceneManager(const Circle* circles_val, size_t circles_num, const Light* lights_val, size_t lights_num,
-                     const Graph* graphs_val, size_t graphs_num, const MyVector* vectors_val, size_t vectors_num,
+        SceneManager(const Circle* circles_val, size_t circles_num, const Graph* graphs_val, size_t graphs_num,
+                     const MyVector* vectors_val, size_t vectors_num,
                      const Eye& eye_val)
             :eye(eye_val) {
             ASSERT(circles_val != NULL, "");
@@ -112,31 +113,51 @@ class SceneManager {
             ASSERT(graphs_val != NULL, "");
             ASSERT(vectors_val != NULL, "");
 
+            size_t lights_num = 0;
             circles = (Circle*) calloc(circles_num, sizeof(Circle));
             SceneManager::circles_num = circles_num;
             if (circles == NULL) {
                 lights = NULL;
                 throw "Cant create SceneManager";
             }
-            lights = (Light*) calloc(lights_num, sizeof(Light));
+            for (size_t i = 0; i < circles_num; i++) {
+                circles[i] = circles_val[i];
+                if (circles_val[i].GetType() == kLight) {
+                    lights_num++;
+                }
+            }
+
+            lights = (Circle*) calloc(lights_num, sizeof(Circle));
             SceneManager::lights_num = lights_num;
             if (lights == NULL) {
                 free(circles);
                 circles = NULL;
                 throw "Cant create SceneManager";
             }
+            lights_num = 0;
+            for (size_t i = 0; i < circles_num; i++) {
+                if (circles_val[i].GetType() == kLight) {
+                    lights[lights_num] = circles_val[i];
+                    lights_num++;
+                }
+            }
+
             graphs = (Graph*) calloc(graphs_num, sizeof(Graph));
             SceneManager::graphs_num = graphs_num;
-            if (lights == NULL) {
+            if (graphs == NULL) {
                 free(circles);
                 circles = NULL;
                 free(lights);
                 lights = NULL;
                 throw "Cant create SceneManager";
             }
+            for (size_t i = 0; i < graphs_num; i++) {
+                graphs[i] = graphs_val[i];
+            }
+
             vectors = (MyVector*) calloc(vectors_num, sizeof(MyVector));
             SceneManager::vectors_num = vectors_num;
-            if (lights == NULL) {
+            if (vectors == NULL) {
                 free(circles);
                 circles = NULL;
                 free(lights);
@@ -144,17 +165,6 @@ class SceneManager {
                 free(graphs);
                 graphs = NULL;
                 throw "Cant create SceneManager";
-            }
-
-
-            for (size_t i = 0; i < circles_num; i++) {
-                circles[i] = circles_val[i];
-            }
-            for (size_t i = 0; i < lights_num; i++) {
-                lights[i] = lights_val[i];
-            }
-            for (size_t i = 0; i < graphs_num; i++) {
-                graphs[i] = graphs_val[i];
             }
             for (size_t i = 0; i < vectors_num; i++) {
                 vectors[i] = vectors_val[i];
@@ -175,7 +185,7 @@ class SceneManager {
 
         Circle* GetCircleArray() const {return circles;};
         size_t  GetCircleArrayLen() const {return circles_num;};
-        Light* GetLightArray() const {return lights;};
+        Circle* GetLightArray() const {return lights;};
         size_t  GetLightArrayLen() const {return lights_num;};
         Graph* GetGraphArray() const {return graphs;};
         size_t  GetGraphArrayLen() const {return graphs_num;};
@@ -194,10 +204,11 @@ class Renderer {
 
     public:
         explicit Renderer(unsigned int width, unsigned int height,
-                 const Circle* circles, size_t circles_num, const Light* lights, size_t lights_num,
-                 const Graph* graphs, size_t graphs_num, const MyVector* vectors, size_t vectors_num)
+                 const Circle* circles, size_t circles_num,
+                 const Graph* graphs, size_t graphs_num,
+                 const MyVector* vectors, size_t vectors_num)
             : window(sf::VideoMode ({width, height}), kWindowName),
-              scene_manager(circles, circles_num, lights, lights_num, graphs, graphs_num, vectors, vectors_num,
+              scene_manager(circles, circles_num, graphs, graphs_num, vectors, vectors_num,
                             Eye(Coordinates(3, (float)(width / 2), (float)(height / 2), - kEyeHeight),
                                 Coordinates(3,-(float)(width / 2),-(float)(height / 2), kWindowDistance),
                                 Coordinates(3,-(float)(width / 2), (float)(height / 2), kWindowDistance),

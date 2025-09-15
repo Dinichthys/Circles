@@ -360,7 +360,7 @@ RendererError Renderer::DrawGraph(Graph graph, float (*func)(float)) {
 RendererError Renderer::DrawCircles() {
     Circle* circles = scene_manager.GetCircleArray();
     size_t circles_num = scene_manager.GetCircleArrayLen();
-    Light* lights = scene_manager.GetLightArray();
+    Circle* lights = scene_manager.GetLightArray();
     size_t lights_num = scene_manager.GetLightArrayLen();
 
     Eye eye = *(scene_manager.GetEye());
@@ -417,7 +417,12 @@ RendererError Renderer::DrawCircles() {
             }
             if (coeff < 0) {
                 vertices[i * screen_width + j].position = {(float)j, (float)i};
-                vertices[i * screen_width + j].color = sf::Color::Cyan;
+                vertices[i * screen_width + j].color = sf::Color::Black;
+                continue;
+            }
+            if (circle.GetType() == kLight) {
+                vertices[i * screen_width + j].position = {(float)j, (float)i};
+                vertices[i * screen_width + j].color = sf::Color(kMaxColor, kMaxColor, kMaxColor);
                 continue;
             }
 
@@ -427,14 +432,14 @@ RendererError Renderer::DrawCircles() {
 
             Coordinates color(kIBase);
             for (size_t light_index = 0; light_index < lights_num; light_index++) {
-                Light light(lights[light_index]);
-                Coordinates light_coordinates(light.GetPosition());
+                Circle light(lights[light_index]);
+                Coordinates light_coordinates(light.GetCenterCoordinates());
                 Coordinates brightness(light.GetBrightness());
                 light_coordinates = light_coordinates - center;
 
                 bool drawable = true;
                 for (size_t circle_index = 0; circle_index < circles_num; circle_index++) {
-                    if (circle_index == circle_number) {
+                    if (circle_index == circle_number){
                         continue;
                     }
                     Coordinates checking_center = circles[circle_index].GetCenterCoordinates();
@@ -456,11 +461,11 @@ RendererError Renderer::DrawCircles() {
                     float res_minus = (-b - discrim) / (2 * a);
                     float res_plus = (-b + discrim) / (2 * a);
 
-                    if (res_plus < 0) {
+                    if (res_plus < kEpsilon) {
                         drawable = false;
                         break;
                     }
-                    if (res_minus < 0) {
+                    if (res_minus < kEpsilon) {
                         drawable = false;
                         break;
                     }
