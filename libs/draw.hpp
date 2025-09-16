@@ -13,7 +13,6 @@
 #include "my_assert.h"
 
 const char* const kWindowName = "Graphics";
-const int kTimeForSleeping = 100000;
 const Coordinates kIBase(3, 19, 19, 19);
 const float kEyeHeight = 1000;
 const float kPowCosB = 32;
